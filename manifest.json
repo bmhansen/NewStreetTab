@@ -10,5 +10,8 @@
     "default_title": "New Street Tab",
     "default_popup": "popup.html"
   },
+  "permissions": [
+    "storage"
+  ],
   "content_security_policy": "script-src https://maps.googleapis.com https://maps.gstatic.com 'self'; object-src 'self'"
 }

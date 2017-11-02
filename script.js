@@ -7,35 +7,50 @@ function init() {
 	disableDefaultUI: true,
 	addressControl: true,
   });
-  
-  randomStreetView(processSVData);
+  // attempts to use a locally stored panorama, fetches new one if not found
+  chrome.storage.sync.get("panoData", processLocalFetch);
+  //fetches another panorama for next time a tab is opened
+  randomStreetView(storePano);
+}
+
+function processLocalFetch(data) {
+  // if there is no locally stored panorama then find one and use it
+  if (Object.keys(data).length === 0 && data.constructor === Object){
+    randomStreetView(usePano);
+  }
+  panorama.setPano(data.panoData);
 }
 
 function randomStreetView(callback) {
-  // 100km search radius is a balance between it being too small and looping 
-  // many times to find land or it being too large and always snapping to 
-  // islands in the middle of oceans (although it does still do this often)
-  var snaptoRadiusMeters = 100e3;
+  // 10km search radius is a balance between taking too long to find a
+  // panorama and having it mostly snap to coastal places
+  var snaptoRadiusMeters = 10e3;
   var sv = new google.maps.StreetViewService();
-  // Random value from 1 to -1, cubed to make most values closer to 0 and keep 
-  // negative values negative, mapped onto 65 degrees of latitude because 
-  // there is boring stuff in the top/bottom 25 degrees of world.
+  // Random value from 1 to -1, cubed to make most values closer to 0 and to
+  // keep negative values negative, mapped onto 65 degrees of latitude 
+  // because there is boring stuff in the top/bottom 25 degrees of world.
   var randLat = ((Math.random()*2 - 1)**3)*65;
-  var randLng = (Math.random() * 360) - 90;
+  //random longitude 0-360 degrees
+  var randLng = (Math.random() * 360) - 180;
   sv.getPanorama({location: {lat: randLat, lng: randLng}, radius: snaptoRadiusMeters}, callback);
 }
 
-function processSVData(data, status) {
-  if (status === 'OK') {
-    panorama.setPano(data.location.pano);
-    panorama.setPov({
-      heading: 270,
-      pitch: 0,
-    });
-    panorama.setVisible(true);
+function storePano(data, status) {
+  if (status === "OK") {
+    console.log(data.location.pano);
+    chrome.storage.sync.set({"panoData": data.location.pano}, );
   } else {
     //try another location, try parallel requests later maybe?
-	randomStreetView(processSVData);
+	randomStreetView(storePano);
+  }
+}
+
+function usePano(data, status) {
+  if (status === "OK") {
+    panorama.setPano(data.location.pano);
+  } else {
+    //try another location, try parallel requests later maybe?
+	randomStreetView(usePano);
   }
 }
 
