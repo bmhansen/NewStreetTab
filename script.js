@@ -36,7 +36,7 @@ function init() {
     var dif = heading - currentPov.heading;
     if (dif != 0) {
       // Make sure the rotation matches the new direction
-      rotateDirection = dif < 0 ? 1 : -1;
+      rotateDirection = (dif > 180 || dif < -180) == dif > 0 ? 1 : -1;
       // keep the POV pitch angle the same
       pitch = currentPov.pitch;
     }
