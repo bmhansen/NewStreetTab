@@ -1,35 +1,56 @@
 var panorama;
+var heading = Math.floor(Math.random() * 360);
+var pitch = 0;
+var rotateSpeed = 100;
+var rotateDirection = Math.random() < 0.5 ? -1 : 1;
+var mouseDown = false;
+document.body.onmousedown = function () {
+  mouseDown = true;
+}
+document.body.onmouseup = function () {
+  mouseDown = false;
+}
+
 function init() {
   panorama = new google.maps.StreetViewPanorama(document.getElementById('street-view'),
     {
-      pov: { heading: Math.floor(Math.random() * 360), pitch: 0 },
+      pov: { heading: heading, pitch: pitch },
       zoom: .5,
       disableDefaultUI: true,
       addressControl: true,
     });
+
   // attempts to use a locally stored panorama, fetches new one if not found
   chrome.storage.sync.get("panoData", processLocalFetch);
-  asyncRotatePano();
+
   //fetches another panorama for next time a tab is opened
   randomStreetView(storePano);
-}
+  var rotate = setInterval(rotatePanoStep, 30);
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+  function rotatePanoStep() {
+    if (mouseDown) {
+      return;
+    }
+    currentPov = panorama.getPov();
+    // if the user changed the POV
+    var dif = heading - currentPov.heading;
+    if (dif != 0) {
+      // Make sure the rotation matches the new direction
+      rotateDirection = dif < 0 ? 1 : -1;
+      // keep the POV pitch angle the same
+      pitch = currentPov.pitch;
+    }
 
-async function asyncRotatePano() {
-  let j = (Math.random() < 0.5) ? 1 : -1;
-  let heading = panorama.getPov().heading;
-  while (heading == panorama.getPov().heading) {
-    heading += j / 16;
-    panorama.setPov({
-      heading: heading,
-      pitch: 0
-    });
-    await sleep(8);
+    heading = currentPov.heading + (rotateSpeed / 2000 * rotateDirection);
+    panorama.setPov(
+      {
+        heading: heading,
+        pitch: pitch
+      });
   }
 }
+
+
 
 function processLocalFetch(data) {
   // if there is no locally stored panorama then find one and use it
@@ -71,7 +92,7 @@ function usePano(data, status) {
   }
 }
 
-//hacky cleanup
+// cleanup
 window.onload = function () {
   document.getElementsByClassName("gmnoprint gm-style-cc")[0].remove();
   document.getElementsByClassName("gm-style-cc")[1].remove();
